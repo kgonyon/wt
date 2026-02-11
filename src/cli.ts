@@ -9,9 +9,9 @@ const main = defineCommand({
   subCommands: {
     up: () => import('./commands/up').then((m) => m.default),
     down: () => import('./commands/down').then((m) => m.default),
-    dev: () => import('./commands/dev').then((m) => m.default),
+    run: () => import('./commands/run').then((m) => m.default),
+    refresh: () => import('./commands/refresh').then((m) => m.default),
     status: () => import('./commands/status').then((m) => m.default),
-    doctor: () => import('./commands/doctor').then((m) => m.default),
   },
 });
 

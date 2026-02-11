@@ -1,12 +1,14 @@
 import { defineCommand } from 'citty';
 import consola from 'consola';
-import { join } from 'path';
-import { rmSync, existsSync } from 'fs';
 import { getProjectRoot, getWorktreePath } from '../lib/paths';
 import { loadConfig } from '../lib/config';
-import { deallocatePorts } from '../lib/ports';
+import { loadPortAllocations, getPortsForFeature, deallocatePorts } from '../lib/ports';
 import { removeWorktree } from '../lib/git';
-import { detectFeatureFromCwd } from '../lib/detect';
+import { resolveFeature } from '../lib/detect';
+import { runHooks } from '../lib/hooks';
+import { runScript } from '../lib/script';
+import type { ScriptContext } from '../lib/script';
+import type { PortConfig } from '../types/config';
 
 export default defineCommand({
   meta: {
@@ -25,37 +27,44 @@ export default defineCommand({
     const config = loadConfig(root);
 
     const feature = resolveFeature(args.feature as string | undefined, config.worktrees.dir);
+    const treePath = getWorktreePath(root, config.worktrees.dir, feature);
+    const ports = lookupPorts(root, feature, config);
+
+    const context: ScriptContext = {
+      root,
+      feature,
+      featureDir: treePath,
+      projectName: config.name,
+      ports,
+      basePort: ports[0] ?? 0,
+    };
+
     consola.start(`Tearing down feature: ${feature}`);
 
-    const treePath = getWorktreePath(root, config.worktrees.dir, feature);
+    await runHooks('pre_down', context);
+
+    if (config.scripts?.cleanup) {
+      consola.info('Running cleanup script...');
+      await runScript(config.scripts.cleanup, context);
+    }
+
     await removeWorktree(root, treePath);
     consola.info('Removed worktree');
 
     deallocatePorts(root, feature);
     consola.info('Deallocated ports');
 
-    cleanLogs(root, config.logs.dir, feature);
+    await runHooks('post_down', context, root);
 
     consola.success(`Feature "${feature}" has been removed`);
   },
 });
 
-function resolveFeature(feature: string | undefined, treesDir: string): string {
-  if (feature) return feature;
+function lookupPorts(root: string, feature: string, config: { port: PortConfig }): number[] {
+  const allocations = loadPortAllocations(root);
+  const allocation = allocations.features[feature];
 
-  const detected = detectFeatureFromCwd(process.cwd(), treesDir);
-  if (!detected) {
-    throw new Error('Could not detect feature name. Provide it as an argument.');
-  }
+  if (!allocation) return [];
 
-  return detected;
-}
-
-function cleanLogs(root: string, logsDir: string, feature: string): void {
-  const logPath = join(root, logsDir, feature);
-
-  if (existsSync(logPath)) {
-    rmSync(logPath, { recursive: true });
-    consola.info('Cleaned log files');
-  }
+  return getPortsForFeature(config.port, allocation.index);
 }

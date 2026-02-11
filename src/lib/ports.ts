@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { dirname } from 'path';
 import { getPortAllocationsPath } from './paths';
-import type { PortAllocations, PortsConfig } from '../types/config';
+import type { PortAllocations, PortConfig } from '../types/config';
 
 export function loadPortAllocations(root: string): PortAllocations {
   const path = getPortAllocationsPath(root);
@@ -25,7 +25,7 @@ export function savePortAllocations(root: string, allocations: PortAllocations):
   writeFileSync(path, JSON.stringify(allocations, null, 2) + '\n');
 }
 
-export function allocatePorts(root: string, feature: string, portsConfig: PortsConfig): number {
+export function allocatePorts(root: string, feature: string, portConfig: PortConfig): number {
   const allocations = loadPortAllocations(root);
 
   if (allocations.features[feature]) {
@@ -36,7 +36,7 @@ export function allocatePorts(root: string, feature: string, portsConfig: PortsC
     Object.values(allocations.features).map((a) => a.index),
   );
 
-  const maxSlots = Math.floor(portsConfig.max / portsConfig.per_feature);
+  const maxSlots = Math.floor(portConfig.max_ports / portConfig.ports_per_feature);
   let index = 0;
 
   while (usedIndices.has(index) && index < maxSlots) {
@@ -59,11 +59,11 @@ export function deallocatePorts(root: string, feature: string): void {
   savePortAllocations(root, allocations);
 }
 
-export function getPortsForFeature(portsConfig: PortsConfig, index: number): number[] {
+export function getPortsForFeature(portConfig: PortConfig, index: number): number[] {
   const ports: number[] = [];
 
-  for (let i = 0; i < portsConfig.per_feature; i++) {
-    ports.push(portsConfig.base + index * portsConfig.per_feature + i);
+  for (let i = 0; i < portConfig.ports_per_feature; i++) {
+    ports.push(portConfig.base_port + index * portConfig.ports_per_feature + i);
   }
 
   return ports;

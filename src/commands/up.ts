@@ -5,7 +5,9 @@ import { loadConfig } from '../lib/config';
 import { allocatePorts, getPortsForFeature } from '../lib/ports';
 import { addWorktree } from '../lib/git';
 import { generateEnvFiles } from '../lib/env';
-import { runHook } from '../lib/process';
+import { runHooks } from '../lib/hooks';
+import { runScript } from '../lib/script';
+import type { ScriptContext } from '../lib/script';
 
 export default defineCommand({
   meta: {
@@ -24,31 +26,43 @@ export default defineCommand({
     const root = await getProjectRoot();
     const config = loadConfig(root);
 
+    const index = allocatePorts(root, feature, config.port);
+    const ports = getPortsForFeature(config.port, index);
+    const treePath = getWorktreePath(root, config.worktrees.dir, feature);
+
+    const context: ScriptContext = {
+      root,
+      feature,
+      featureDir: treePath,
+      projectName: config.name,
+      ports,
+      basePort: ports[0] ?? 0,
+    };
+
     consola.start(`Setting up feature: ${feature}`);
 
-    const index = allocatePorts(root, feature, config.ports);
-    const ports = getPortsForFeature(config.ports, index);
-    consola.info(`Allocated ports: ${ports.join(', ')}`);
+    await runHooks('pre_up', context, root);
 
-    const treePath = getWorktreePath(root, config.worktrees.dir, feature);
     await addWorktree(root, treePath, config.worktrees.branch_prefix, feature);
     consola.info(`Created worktree at ${treePath}`);
 
-    generateEnvFiles(treePath, config.packages, ports);
-    consola.info('Generated env files');
+    consola.info(`Allocated ports: ${ports.join(', ')}`);
 
-    await runSetupHooks(treePath, config.setup.hooks);
+    if (config.env_files?.length) {
+      generateEnvFiles(treePath, config.env_files, ports);
+      consola.info('Generated env files');
+    }
+
+    if (config.scripts?.setup) {
+      consola.info('Running setup script...');
+      await runScript(config.scripts.setup, context);
+    }
+
+    await runHooks('post_up', context);
 
     printSummary(feature, config.worktrees.branch_prefix, ports, treePath);
   },
 });
-
-async function runSetupHooks(treePath: string, hooks: string[]): Promise<void> {
-  for (const hook of hooks) {
-    consola.info(`Running setup hook: ${hook}`);
-    await runHook(treePath, hook);
-  }
-}
 
 function printSummary(
   feature: string,

@@ -3,7 +3,14 @@ import { parse } from 'yaml';
 import { getConfigPath, getLocalConfigPath } from './paths';
 import type { WtConfig } from '../types/config';
 
-function deepMerge(target: Record<string, any>, source: Record<string, any>): Record<string, any> {
+function isPlainObject(value: unknown): value is Record<string, any> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function deepMerge(
+  target: Record<string, any>,
+  source: Record<string, any>,
+): Record<string, any> {
   const result = { ...target };
 
   for (const key of Object.keys(source)) {
@@ -15,10 +22,6 @@ function deepMerge(target: Record<string, any>, source: Record<string, any>): Re
   }
 
   return result;
-}
-
-function isPlainObject(value: unknown): value is Record<string, any> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 export function loadConfig(root: string): WtConfig {

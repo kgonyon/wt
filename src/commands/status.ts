@@ -5,6 +5,8 @@ import { getProjectRoot } from '../lib/paths';
 import { loadConfig } from '../lib/config';
 import { loadPortAllocations, getPortsForFeature } from '../lib/ports';
 import { listWorktrees, isWorktreeDirty } from '../lib/git';
+import type { WorktreeInfo } from '../lib/git';
+import type { PortAllocations, WtConfig } from '../types/config';
 
 export default defineCommand({
   meta: {
@@ -33,22 +35,21 @@ export default defineCommand({
   },
 });
 
-function filterFeatureWorktrees(worktrees: any[], treesDir: string) {
+function filterFeatureWorktrees(worktrees: WorktreeInfo[], treesDir: string): WorktreeInfo[] {
   return worktrees.filter((wt) => wt.path.includes(`/${treesDir}/`));
 }
 
 async function printFeatureStatus(
-  wt: any,
-  allocations: any,
-  config: any,
+  wt: WorktreeInfo,
+  allocations: PortAllocations,
+  config: WtConfig,
 ): Promise<void> {
   const feature = basename(wt.path);
   const allocation = allocations.features[feature];
   const ports = allocation
-    ? getPortsForFeature(config.ports, allocation.index)
+    ? getPortsForFeature(config.port, allocation.index)
     : [];
   const dirty = await isWorktreeDirty(wt.path);
-  const dirtyMark = dirty ? ' (dirty)' : '';
 
   const branchName = wt.branch.replace('refs/heads/', '');
   const portStr = ports.length > 0 ? ports.join(', ') : 'unallocated';
@@ -56,6 +57,6 @@ async function printFeatureStatus(
   console.log(`  ${feature}`);
   console.log(`    Branch: ${branchName}`);
   console.log(`    Ports:  ${portStr}`);
-  console.log(`    Status: ${dirty ? 'dirty' : 'clean'}${dirtyMark ? '' : ''}`);
+  console.log(`    Status: ${dirty ? 'dirty' : 'clean'}`);
   console.log('');
 }
