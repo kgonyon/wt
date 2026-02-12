@@ -1,6 +1,7 @@
 import { $ } from 'bun';
 import { join } from 'path';
 import { existsSync } from 'fs';
+import { homedir } from 'os';
 
 export async function getGitRoot(): Promise<string> {
   const result = await $`git rev-parse --show-toplevel`.quiet();
@@ -32,4 +33,8 @@ export function getLocalConfigPath(root: string): string {
 
 export function getPortAllocationsPath(root: string): string {
   return join(root, '.wt', 'port_allocations.json');
+}
+
+export function getUserConfigPath(): string {
+  return join(homedir(), '.config', 'wt', 'config.yaml');
 }

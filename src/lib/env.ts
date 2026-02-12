@@ -1,17 +1,17 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
-import type { Package } from '../types/config';
+import type { EnvFilePackage } from '../types/config';
 
 export function generateEnvFiles(
   worktreePath: string,
-  packages: Package[],
+  packages: EnvFilePackage[],
   ports: number[],
 ): void {
   const portVars = buildPortVars(ports);
 
   for (const pkg of packages) {
     const pkgPath = join(worktreePath, pkg.path);
-    for (const envFile of pkg.env_files) {
+    for (const envFile of pkg.files) {
       processEnvFile(pkgPath, envFile.source, envFile.dest, envFile.replace, portVars);
     }
   }
