@@ -1,7 +1,7 @@
 import { defineCommand } from 'citty';
 import consola from 'consola';
 import { basename } from 'path';
-import { getProjectRoot } from '../lib/paths';
+import { getGitRoot, isWtProject } from '../lib/paths';
 import { loadConfig } from '../lib/config';
 import { loadPortAllocations, getPortsForFeature } from '../lib/ports';
 import { listWorktrees, isWorktreeDirty } from '../lib/git';
@@ -14,7 +14,13 @@ export default defineCommand({
     description: 'Show all active feature worktrees with branch, port, and dirty state',
   },
   async run() {
-    const root = await getProjectRoot();
+    const root = await getGitRoot();
+
+    if (!isWtProject(root)) {
+      consola.warn('Not a wt project. Run `wt init` to initialize.');
+      return;
+    }
+
     const config = loadConfig(root);
     const allocations = loadPortAllocations(root);
     const worktrees = await listWorktrees(root);

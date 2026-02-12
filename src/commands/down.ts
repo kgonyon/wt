@@ -41,7 +41,7 @@ export default defineCommand({
 
     consola.start(`Tearing down feature: ${feature}`);
 
-    await runHooks('pre_down', context);
+    await runHooks('down', context);
 
     if (config.scripts?.cleanup) {
       consola.info('Running cleanup script...');
@@ -53,8 +53,6 @@ export default defineCommand({
 
     deallocatePorts(root, feature);
     consola.info('Deallocated ports');
-
-    await runHooks('post_down', context, root);
 
     consola.success(`Feature "${feature}" has been removed`);
   },

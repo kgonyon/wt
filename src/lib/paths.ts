@@ -4,8 +4,21 @@ import { existsSync } from 'fs';
 import { homedir } from 'os';
 
 export async function getGitRoot(): Promise<string> {
-  const result = await $`git rev-parse --show-toplevel`.quiet();
-  return result.text().trim();
+  try {
+    const commonDir = await $`git rev-parse --path-format=absolute --git-common-dir`.quiet();
+    const resolved = commonDir.text().trim();
+
+    // Strip /worktrees/<name> if present, then strip /.git suffix
+    const stripped = resolved.replace(/\/worktrees\/[^/]+$/, '');
+    return stripped.replace(/\/\.git$/, '') || stripped;
+  } catch {
+    try {
+      const result = await $`git rev-parse --show-toplevel`.quiet();
+      return result.text().trim();
+    } catch {
+      throw new Error('Not inside a git repository. Run this command from within a git project.');
+    }
+  }
 }
 
 export async function getProjectRoot(): Promise<string> {
@@ -13,7 +26,9 @@ export async function getProjectRoot(): Promise<string> {
   const configPath = join(gitRoot, '.wt', 'config.yaml');
 
   if (!existsSync(configPath)) {
-    throw new Error(`No .wt/config.yaml found at ${gitRoot}`);
+    throw new Error(
+      `No .wt/config.yaml found at ${gitRoot}. Initialize with a config file at .wt/config.yaml`,
+    );
   }
 
   return gitRoot;
@@ -37,4 +52,19 @@ export function getPortAllocationsPath(root: string): string {
 
 export function getUserConfigPath(): string {
   return join(homedir(), '.config', 'wt', 'config.yaml');
+}
+
+export function isWtProject(root: string): boolean {
+  return existsSync(join(root, '.wt', 'config.yaml'));
+}
+
+export function isRelativePath(command: string): boolean {
+  return command.includes('/') || command.endsWith('.sh');
+}
+
+export function resolveRelativePath(command: string, baseDir: string): string {
+  if (isRelativePath(command)) {
+    return join(baseDir, command);
+  }
+  return command;
 }

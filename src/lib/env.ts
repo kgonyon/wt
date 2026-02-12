@@ -1,41 +1,37 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
-import type { EnvFilePackage } from '../types/config';
+import type { EnvFile } from '../types/config';
 
 export function generateEnvFiles(
   worktreePath: string,
-  packages: EnvFilePackage[],
+  envFiles: EnvFile[],
   ports: number[],
 ): void {
   const portVars = buildPortVars(ports);
 
-  for (const pkg of packages) {
-    const pkgPath = join(worktreePath, pkg.path);
-    for (const envFile of pkg.files) {
-      processEnvFile(pkgPath, envFile.source, envFile.dest, envFile.replace, portVars);
-    }
+  for (const entry of envFiles) {
+    const basePath = join(worktreePath, entry.path);
+    processEnvFile(basePath, entry.source, entry.dest, entry.replace, portVars);
   }
 }
 
 function buildPortVars(ports: number[]): Record<string, string> {
   const vars: Record<string, string> = {};
-
   for (let i = 0; i < ports.length; i++) {
     vars[`WT_PORT_${i + 1}`] = String(ports[i]);
   }
-
   return vars;
 }
 
 function processEnvFile(
-  pkgPath: string,
+  basePath: string,
   source: string,
   dest: string,
   replace: Record<string, string>,
   portVars: Record<string, string>,
 ): void {
-  const sourcePath = join(pkgPath, source);
-  const destPath = join(pkgPath, dest);
+  const sourcePath = join(basePath, source);
+  const destPath = join(basePath, dest);
 
   if (!existsSync(sourcePath)) {
     throw new Error(`Env template not found: ${sourcePath}`);
