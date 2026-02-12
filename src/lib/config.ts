@@ -3,11 +3,13 @@ import { parse } from 'yaml';
 import { getConfigPath, getLocalConfigPath } from './paths';
 import type { WtConfig } from '../types/config';
 
-function isPlainObject(value: unknown): value is Record<string, any> {
+/** @internal */
+export function isPlainObject(value: unknown): value is Record<string, any> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function deepMerge(
+/** @internal */
+export function deepMerge(
   target: Record<string, any>,
   source: Record<string, any>,
 ): Record<string, any> {

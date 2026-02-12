@@ -7,11 +7,13 @@ import { HOOK_EVENTS } from '../types/hooks';
 import type { HookEvent, HookConfig } from '../types/hooks';
 import type { ScriptContext } from './script';
 
-function isHookEvent(key: string): key is HookEvent {
+/** @internal */
+export function isHookEvent(key: string): key is HookEvent {
   return (HOOK_EVENTS as readonly string[]).includes(key);
 }
 
-function validateHookConfig(raw: unknown, configDir: string): HookConfig {
+/** @internal */
+export function validateHookConfig(raw: unknown, configDir: string): HookConfig {
   if (!Array.isArray(raw)) return [];
 
   const result: HookConfig = [];
@@ -43,7 +45,8 @@ function loadHooksFromFile(filePath: string, configDir: string): HookConfig {
   return validateHookConfig(parsed?.hooks ?? [], configDir);
 }
 
-function mergeHookConfigs(...configs: HookConfig[]): HookConfig {
+/** @internal */
+export function mergeHookConfigs(...configs: HookConfig[]): HookConfig {
   return configs.flat();
 }
 

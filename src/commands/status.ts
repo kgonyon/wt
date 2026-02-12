@@ -41,7 +41,8 @@ export default defineCommand({
   },
 });
 
-function filterFeatureWorktrees(worktrees: WorktreeInfo[], treesDir: string): WorktreeInfo[] {
+/** @internal */
+export function filterFeatureWorktrees(worktrees: WorktreeInfo[], treesDir: string): WorktreeInfo[] {
   return worktrees.filter((wt) => wt.path.includes(`/${treesDir}/`));
 }
 

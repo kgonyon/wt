@@ -88,7 +88,8 @@ async function runProjectScoped(
   await runHooks('run', context);
 }
 
-function findCommand(config: WtConfig, name: string): CommandConfig {
+/** @internal */
+export function findCommand(config: WtConfig, name: string): CommandConfig {
   const cmd = config.commands?.find((c) => c.name === name);
 
   if (!cmd) {

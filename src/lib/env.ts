@@ -15,7 +15,8 @@ export function generateEnvFiles(
   }
 }
 
-function buildPortVars(ports: number[]): Record<string, string> {
+/** @internal */
+export function buildPortVars(ports: number[]): Record<string, string> {
   const vars: Record<string, string> = {};
   for (let i = 0; i < ports.length; i++) {
     vars[`WT_PORT_${i + 1}`] = String(ports[i]);
@@ -44,7 +45,8 @@ function processEnvFile(
   writeFileSync(destPath, content);
 }
 
-function applyReplacements(
+/** @internal */
+export function applyReplacements(
   content: string,
   replace: Record<string, string>,
   portVars: Record<string, string>,
@@ -59,7 +61,8 @@ function applyReplacements(
   return result.join('\n');
 }
 
-function processLine(
+/** @internal */
+export function processLine(
   line: string,
   replace: Record<string, string>,
   portVars: Record<string, string>,
@@ -74,7 +77,8 @@ function processLine(
   return `${key}=${value}`;
 }
 
-function substitutePortVars(template: string, portVars: Record<string, string>): string {
+/** @internal */
+export function substitutePortVars(template: string, portVars: Record<string, string>): string {
   return template.replace(/\$\{(WT_PORT_\d+)\}/g, (_, varName) => {
     return portVars[varName] ?? `\${${varName}}`;
   });
