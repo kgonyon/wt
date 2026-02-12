@@ -41,8 +41,6 @@ export default defineCommand({
 
     consola.start(`Setting up feature: ${feature}`);
 
-    await runHooks('pre_up', context, root);
-
     await addWorktree(root, treePath, config.worktrees.branch_prefix, feature);
     consola.info(`Created worktree at ${treePath}`);
 
@@ -58,7 +56,7 @@ export default defineCommand({
       await runScript(config.scripts.setup, context);
     }
 
-    await runHooks('post_up', context);
+    await runHooks('up', context);
 
     printSummary(feature, config.worktrees.branch_prefix, ports, treePath);
   },

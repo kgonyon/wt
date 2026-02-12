@@ -1,58 +1,60 @@
 import { readFileSync, existsSync } from 'fs';
+import { join, dirname } from 'path';
 import { parse } from 'yaml';
-import { getConfigPath, getLocalConfigPath, getUserConfigPath } from './paths';
+import { getConfigPath, getLocalConfigPath, getUserConfigPath, resolveRelativePath } from './paths';
 import { runCommand } from './script';
 import { HOOK_EVENTS } from '../types/hooks';
 import type { HookEvent, HookConfig } from '../types/hooks';
 import type { ScriptContext } from './script';
 
-function loadHooksFromFile(filePath: string): HookConfig {
-  if (!existsSync(filePath)) {
-    return {};
+/** @internal */
+export function isHookEvent(key: string): key is HookEvent {
+  return (HOOK_EVENTS as readonly string[]).includes(key);
+}
+
+/** @internal */
+export function validateHookConfig(raw: unknown, configDir: string): HookConfig {
+  if (!Array.isArray(raw)) return [];
+
+  const result: HookConfig = [];
+
+  for (const entry of raw) {
+    if (
+      typeof entry === 'object' &&
+      entry !== null &&
+      typeof entry.event === 'string' &&
+      typeof entry.command === 'string' &&
+      isHookEvent(entry.event)
+    ) {
+      result.push({
+        event: entry.event,
+        command: resolveRelativePath(entry.command, configDir),
+      });
+    }
   }
+
+  return result;
+}
+
+function loadHooksFromFile(filePath: string, configDir: string): HookConfig {
+  if (!existsSync(filePath)) return [];
 
   const raw = readFileSync(filePath, 'utf-8');
   const parsed = parse(raw);
 
-  return validateHookConfig(parsed?.hooks ?? {});
+  return validateHookConfig(parsed?.hooks ?? [], configDir);
 }
 
-function validateHookConfig(raw: unknown): HookConfig {
-  if (typeof raw !== 'object' || raw === null) return {};
-  const result: HookConfig = {};
-
-  for (const [key, val] of Object.entries(raw)) {
-    if (isHookEvent(key) && Array.isArray(val) && val.every((v) => typeof v === 'string')) {
-      result[key] = val;
-    }
-  }
-
-  return result;
-}
-
-function isHookEvent(key: string): key is HookEvent {
-  return (HOOK_EVENTS as readonly string[]).includes(key);
-}
-
-function mergeHookConfigs(...configs: HookConfig[]): HookConfig {
-  const result: HookConfig = {};
-
-  for (const config of configs) {
-    for (const [event, commands] of Object.entries(config)) {
-      const key = event as HookEvent;
-      if (!commands?.length) continue;
-
-      result[key] = [...(result[key] ?? []), ...commands];
-    }
-  }
-
-  return result;
+/** @internal */
+export function mergeHookConfigs(...configs: HookConfig[]): HookConfig {
+  return configs.flat();
 }
 
 export function loadAllHooks(root: string): HookConfig {
-  const projectHooks = loadHooksFromFile(getConfigPath(root));
-  const localHooks = loadHooksFromFile(getLocalConfigPath(root));
-  const userHooks = loadHooksFromFile(getUserConfigPath());
+  const wtDir = join(root, '.wt');
+  const projectHooks = loadHooksFromFile(getConfigPath(root), wtDir);
+  const localHooks = loadHooksFromFile(getLocalConfigPath(root), wtDir);
+  const userHooks = loadHooksFromFile(getUserConfigPath(), dirname(getUserConfigPath()));
 
   return mergeHookConfigs(projectHooks, localHooks, userHooks);
 }
@@ -63,11 +65,11 @@ export async function runHooks(
   cwd?: string,
 ): Promise<void> {
   const hooks = loadAllHooks(context.root);
-  const commands = hooks[event];
+  const entries = hooks.filter((h) => h.event === event);
 
-  if (!commands?.length) return;
+  if (entries.length === 0) return;
 
-  for (const command of commands) {
-    await runCommand(command, context, cwd ?? context.featureDir);
+  for (const entry of entries) {
+    await runCommand(entry.command, context, cwd ?? (context.featureDir || context.root));
   }
 }

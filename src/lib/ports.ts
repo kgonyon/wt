@@ -36,7 +36,7 @@ export function allocatePorts(root: string, feature: string, portConfig: PortCon
     Object.values(allocations.features).map((a) => a.index),
   );
 
-  const maxSlots = Math.floor(portConfig.max_ports / portConfig.ports_per_feature);
+  const maxSlots = Math.floor(portConfig.max / portConfig.per_feature);
   let index = 0;
 
   while (usedIndices.has(index) && index < maxSlots) {
@@ -62,8 +62,8 @@ export function deallocatePorts(root: string, feature: string): void {
 export function getPortsForFeature(portConfig: PortConfig, index: number): number[] {
   const ports: number[] = [];
 
-  for (let i = 0; i < portConfig.ports_per_feature; i++) {
-    ports.push(portConfig.base_port + index * portConfig.ports_per_feature + i);
+  for (let i = 0; i < portConfig.per_feature; i++) {
+    ports.push(portConfig.base + index * portConfig.per_feature + i);
   }
 
   return ports;

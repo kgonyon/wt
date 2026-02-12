@@ -6,21 +6,16 @@ export interface WorktreesConfig {
 }
 
 export interface PortConfig {
-  base_port: number;
-  max_ports: number;
-  ports_per_feature: number;
+  base: number;
+  per_feature: number;
+  max: number;
 }
 
 export interface EnvFile {
+  path: string;
   source: string;
   dest: string;
   replace: Record<string, string>;
-}
-
-export interface EnvFilePackage {
-  package: string;
-  path: string;
-  files: EnvFile[];
 }
 
 export interface CommandConfig {
@@ -41,7 +36,7 @@ export interface WtConfig {
   port: PortConfig;
   scripts?: ScriptsConfig;
   commands?: CommandConfig[];
-  env_files?: EnvFilePackage[];
+  env_files?: EnvFile[];
   hooks?: HookConfig;
 }
 

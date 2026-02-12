@@ -13,13 +13,16 @@ export function buildEnv(context: ScriptContext): Record<string, string> {
   const env: Record<string, string> = {
     WT_PROJECT: context.projectName,
     WT_PROJECT_DIR: context.root,
-    WT_FEATURE: context.feature,
-    WT_FEATURE_DIR: context.featureDir,
-    WT_PORT: String(context.basePort),
   };
 
-  for (let i = 0; i < context.ports.length; i++) {
-    env[`WT_PORT_${i + 1}`] = String(context.ports[i]);
+  if (context.feature) {
+    env.WT_FEATURE = context.feature;
+    env.WT_FEATURE_DIR = context.featureDir;
+    env.WT_PORT = String(context.basePort);
+
+    for (let i = 0; i < context.ports.length; i++) {
+      env[`WT_PORT_${i + 1}`] = String(context.ports[i]);
+    }
   }
 
   return env;

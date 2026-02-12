@@ -41,7 +41,8 @@ export async function listWorktrees(root: string): Promise<WorktreeInfo[]> {
   return parsePorcelainOutput(result.text());
 }
 
-function parsePorcelainOutput(output: string): WorktreeInfo[] {
+/** @internal */
+export function parsePorcelainOutput(output: string): WorktreeInfo[] {
   const worktrees: WorktreeInfo[] = [];
   const blocks = output.trim().split('\n\n');
 
@@ -53,7 +54,8 @@ function parsePorcelainOutput(output: string): WorktreeInfo[] {
   return worktrees;
 }
 
-function parseSingleBlock(block: string): WorktreeInfo | null {
+/** @internal */
+export function parseSingleBlock(block: string): WorktreeInfo | null {
   const lines = block.trim().split('\n');
   let path = '';
   let head = '';
