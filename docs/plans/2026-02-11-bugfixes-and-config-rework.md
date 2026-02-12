@@ -1,7 +1,7 @@
 # Spec: Bugfixes & Config Rework — Worktree Resolution, Hooks, Scoped Commands, Env Simplification
 
 **Date:** 2026-02-11
-**Status:** reviewing
+**Status:** shipped
 
 ## Summary
 
@@ -299,4 +299,30 @@ Full end-to-end CLI validation against avatar project. All acceptance criteria v
 
 ## Reviews
 
-[Populated during review loop]
+### Round 1
+
+**Accepted:**
+- Q1 (quality): Dead code — unused `HookEntry` import in src/lib/hooks.ts:7. Rationale: Confirmed unused, safe removal.
+- Q4/A1 (quality/architecture): Bug — project-scoped hooks cwd falls back to empty string in hooks.ts:81. Rationale: Functional bug, fixed with `|| context.root`.
+- Q2/A3/Q7 (quality/architecture): Duplication — inconsistent relative-path detection in run.ts vs hooks.ts. Rationale: Extracted shared `resolveRelativePath` to paths.ts.
+- A2 (architecture): Plan compliance — .wt/config.yaml uses old env_files format in comments. Rationale: Updated to flat format.
+
+**Rejected:**
+- Q3 (quality): lookupPorts duplication — intentional different error handling in run.ts vs down.ts.
+- Q5 (quality): createConfigFile length — template string, not logic complexity.
+- Q6 (quality): .includes() substring match — sufficient for gitignore entries.
+- S1/S2/S3 (security): Path traversal from config — trusted sources.
+- S4 (security): Schema validation — out of scope.
+- S5 (security): YAML injection from dirname — edge case.
+- A4 (architecture): down hook ordering — matches spec intent.
+- A5 (architecture): init not in spec — acceptable addition.
+- A6 (architecture): loadAllHooks re-reads — intentional design.
+
+### Round 2
+
+**Accepted:**
+- Q3/Q4 (quality): Stale comment in .wt/scripts/setup.sh and cleanup.sh referencing old `ports_per_feature` key. Rationale: Trivial fix, prevents confusion.
+
+**Rejected:**
+- Q1 (quality): isRelativePath export — public API for shared utility, may be needed by future callers.
+- Q2 (quality): lookupPorts duplication — same as Round 1 Q3, rejected with same rationale.
