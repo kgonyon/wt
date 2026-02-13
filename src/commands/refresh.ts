@@ -2,26 +2,34 @@ import { defineCommand } from 'citty';
 import consola from 'consola';
 import { $ } from 'bun';
 import { getProjectRoot } from '../lib/paths';
+import { isWorktreeDirty } from '../lib/git';
 
 export default defineCommand({
   meta: {
     name: 'refresh',
-    description: 'Fetch latest changes from the default branch',
+    description: 'Pull latest changes from the default branch',
   },
   async run() {
     const root = await getProjectRoot();
+
+    const isDirty = await isWorktreeDirty(root);
+    if (isDirty) {
+      consola.error('Uncommitted changes detected. Commit or stash them before refreshing.');
+      process.exit(1);
+    }
+
     const branch = await detectDefaultBranch(root);
 
-    consola.start(`Fetching origin/${branch}...`);
+    consola.start(`Pulling origin/${branch}...`);
 
-    const result = await $`git -C ${root} fetch origin ${branch}`.quiet();
+    const result = await $`git -C ${root} pull origin ${branch}`.quiet();
     const output = result.text().trim();
 
     if (output) {
       consola.info(output);
     }
 
-    consola.success(`Fetched latest from origin/${branch}`);
+    consola.success(`Pulled latest from origin/${branch}`);
   },
 });
 
