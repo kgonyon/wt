@@ -1,7 +1,7 @@
 # Spec: Show git change stats in `wt status`
 
 **Date:** 2026-02-12
-**Status:** reviewing
+**Status:** shipped
 
 ## Summary
 
@@ -220,4 +220,30 @@ Run `bun test` (full suite) and confirm all tests pass. Verify that `isWorktreeD
 
 ## Reviews
 
-<!-- Populated during review loop -->
+### Review Findings
+
+| # | File:Line | Category | Severity | Description | Suggested Fix |
+|---|-----------|----------|----------|-------------|---------------|
+| Q1 | src/lib/git.ts:124-125 | Quality | Med | `Number()` on malformed numstat input silently produces NaN, corrupting entire sum | Use `Number.parseInt` with NaN guard |
+| Q2 | src/lib/git.ts:2 | Quality | Low | Unused import `consola` (pre-existing, not introduced by this branch) | Remove the import |
+| A1 | src/lib/git.test.ts | Architecture | Med | Spec test plan defines 3 `getWorktreeStats` error-handling tests but none implemented | Add tests per test plan |
+
+### Review Decision
+
+#### Accepted
+
+| # | File:Line | Category | Rationale |
+|---|-----------|----------|-----------|
+| Q1 | src/lib/git.ts:124-125 | Quality | Silent NaN corruption violates AGENTS.md "prefer loud" principle. Minimal, behavior-preserving hardening. |
+| A1 | src/lib/git.test.ts | Architecture | Spec mandates these tests. Two catch blocks with zero coverage. |
+
+#### Rejected
+
+| # | File:Line | Category | Rationale |
+|---|-----------|----------|-----------|
+| Q2 | src/lib/git.ts:2 | Quality | Pre-existing on main, not introduced by this branch. Should be a separate cleanup. |
+
+#### Summary
+- Accepted: 2 findings
+- Rejected: 1 finding
+- Both accepted findings implemented and verified (133 tests passing)
