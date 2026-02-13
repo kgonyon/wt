@@ -1,10 +1,18 @@
 import { $ } from 'bun';
 import consola from 'consola';
+import { gitExec } from './shell';
 
 export interface WorktreeInfo {
   path: string;
   head: string;
   branch: string;
+}
+
+export interface WorktreeStats {
+  fileCount: number;
+  insertions: number;
+  deletions: number;
+  isDirty: boolean;
 }
 
 export async function addWorktree(
@@ -71,11 +79,86 @@ export function parseSingleBlock(block: string): WorktreeInfo | null {
   return { path, head, branch };
 }
 
-export async function isWorktreeDirty(treePath: string): Promise<boolean> {
-  try {
-    const result = await $`git -C ${treePath} status --porcelain`.quiet();
-    return result.text().trim().length > 0;
-  } catch {
-    return false;
+/**
+ * Count unique files from `git status --porcelain` output.
+ * Each non-empty line is one file. Ignored files (`!!`) are skipped.
+ * @internal
+ */
+export function parsePorcelainFileCount(output: string): number {
+  const trimmed = output.trim();
+  if (trimmed.length === 0) return 0;
+
+  const lines = trimmed.split('\n');
+  let count = 0;
+
+  for (const line of lines) {
+    if (line.trim().length === 0) continue;
+    const xy = line.slice(0, 2);
+    if (xy === '!!') continue;
+    count++;
   }
+
+  return count;
+}
+
+/**
+ * Sum line insertions/deletions from `git diff HEAD --numstat` output.
+ * Binary files (`-\t-\tfilename`) are skipped.
+ * @internal
+ */
+export function parseNumstatOutput(output: string): {
+  insertions: number;
+  deletions: number;
+} {
+  const trimmed = output.trim();
+  if (trimmed.length === 0) return { insertions: 0, deletions: 0 };
+
+  const lines = trimmed.split('\n');
+  let insertions = 0;
+  let deletions = 0;
+
+  for (const line of lines) {
+    if (line.trim().length === 0) continue;
+    const parts = line.split('\t');
+    if (parts.length < 3) continue;
+    if (parts[0] === '-' && parts[1] === '-') continue;
+    const ins = Number.parseInt(parts[0], 10);
+    const del = Number.parseInt(parts[1], 10);
+    if (Number.isNaN(ins) || Number.isNaN(del)) continue;
+    insertions += ins;
+    deletions += del;
+  }
+
+  return { insertions, deletions };
+}
+
+const CLEAN_STATS: WorktreeStats = {
+  fileCount: 0,
+  insertions: 0,
+  deletions: 0,
+  isDirty: false,
+};
+
+export async function getWorktreeStats(treePath: string): Promise<WorktreeStats> {
+  let porcelainOutput: string;
+  try {
+    porcelainOutput = await gitExec(treePath, 'status --porcelain');
+  } catch {
+    return { ...CLEAN_STATS };
+  }
+
+  const fileCount = parsePorcelainFileCount(porcelainOutput);
+  const isDirty = fileCount > 0;
+
+  if (!isDirty) return { ...CLEAN_STATS };
+
+  let numstatOutput: string;
+  try {
+    numstatOutput = await gitExec(treePath, 'diff HEAD --numstat');
+  } catch {
+    return { fileCount, insertions: 0, deletions: 0, isDirty };
+  }
+
+  const { insertions, deletions } = parseNumstatOutput(numstatOutput);
+  return { fileCount, insertions, deletions, isDirty };
 }

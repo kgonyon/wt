@@ -2,7 +2,7 @@ import { defineCommand } from 'citty';
 import consola from 'consola';
 import { $ } from 'bun';
 import { getProjectRoot } from '../lib/paths';
-import { isWorktreeDirty } from '../lib/git';
+import { getWorktreeStats } from '../lib/git';
 
 export default defineCommand({
   meta: {
@@ -12,7 +12,7 @@ export default defineCommand({
   async run() {
     const root = await getProjectRoot();
 
-    const isDirty = await isWorktreeDirty(root);
+    const { isDirty } = await getWorktreeStats(root);
     if (isDirty) {
       consola.error('Uncommitted changes detected. Commit or stash them before refreshing.');
       process.exit(1);

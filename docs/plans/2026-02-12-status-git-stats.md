@@ -1,7 +1,7 @@
 # Spec: Show git change stats in `wt status`
 
 **Date:** 2026-02-12
-**Status:** approved
+**Status:** reviewing
 
 ## Summary
 
@@ -130,7 +130,7 @@ Replace the binary `dirty`/`clean` indicator in `wt status` with meaningful git 
 
 ### Phase 1: Git stats parsing
 
-**Status:** pending
+**Status:** completed
 **Dependencies:** None
 
 #### Summary
@@ -139,12 +139,12 @@ Add the core data layer: a `WorktreeStats` interface and pure parsing functions 
 
 #### Tasks
 
-- [ ] Add `WorktreeStats` interface to `src/lib/git.ts` with fields: `fileCount`, `insertions`, `deletions`, `isDirty`
-- [ ] Add `parsePorcelainFileCount(output: string): number` — count unique files from `git status --porcelain` output
-- [ ] Add `parseNumstatOutput(output: string): { insertions: number; deletions: number }` — sum line changes from `git diff HEAD --numstat` output
-- [ ] Add `getWorktreeStats(treePath: string): Promise<WorktreeStats>` — runs both git commands and returns combined stats
-- [ ] Add unit tests for `parsePorcelainFileCount`: empty output, single file, multiple files, untracked, renamed, mixed statuses
-- [ ] Add unit tests for `parseNumstatOutput`: empty output, single file, multiple files, binary files (dash-dash)
+- [x] Add `WorktreeStats` interface to `src/lib/git.ts` with fields: `fileCount`, `insertions`, `deletions`, `isDirty`
+- [x] Add `parsePorcelainFileCount(output: string): number` — count unique files from `git status --porcelain` output
+- [x] Add `parseNumstatOutput(output: string): { insertions: number; deletions: number }` — sum line changes from `git diff HEAD --numstat` output
+- [x] Add `getWorktreeStats(treePath: string): Promise<WorktreeStats>` — runs both git commands and returns combined stats
+- [x] Add unit tests for `parsePorcelainFileCount`: empty output, single file, multiple files, untracked, renamed, mixed statuses
+- [x] Add unit tests for `parseNumstatOutput`: empty output, single file, multiple files, binary files (dash-dash)
 
 #### Testing
 
@@ -161,7 +161,7 @@ Verify parsing acceptance criteria: run `bun test src/lib/git.test.ts` and confi
 
 ### Phase 2: Status display update
 
-**Status:** pending
+**Status:** completed
 **Dependencies:** Phase 1
 
 #### Summary
@@ -170,11 +170,11 @@ Update the status command to use `getWorktreeStats()` instead of `isWorktreeDirt
 
 #### Tasks
 
-- [ ] Add `formatStats(stats: WorktreeStats): string` to `src/commands/status.ts` — returns `N changed  +X -Y` or `clean`
-- [ ] Update `printFeatureStatus` to call `getWorktreeStats()` instead of `isWorktreeDirty()`
-- [ ] Update the Status line to use `formatStats()`
-- [ ] Update import in `status.ts` from `isWorktreeDirty` to `getWorktreeStats`
-- [ ] Add unit tests for `formatStats`: clean stats, dirty stats, zero line changes with untracked files, large numbers
+- [x] Add `formatStats(stats: WorktreeStats): string` to `src/commands/status.ts` — returns `N changed  +X -Y` or `clean`
+- [x] Update `printFeatureStatus` to call `getWorktreeStats()` instead of `isWorktreeDirty()`
+- [x] Update the Status line to use `formatStats()`
+- [x] Update import in `status.ts` from `isWorktreeDirty` to `getWorktreeStats`
+- [x] Add unit tests for `formatStats`: clean stats, dirty stats, zero line changes with untracked files, large numbers
 
 #### Testing
 
@@ -191,7 +191,7 @@ Verify CLI output acceptance criteria: run `bun test src/commands/status.test.ts
 
 ### Phase 3: Migrate callers and clean up
 
-**Status:** pending
+**Status:** completed
 **Dependencies:** Phase 2
 
 #### Summary
@@ -200,10 +200,10 @@ Update `refresh.ts` to use `getWorktreeStats()` instead of `isWorktreeDirty()`, 
 
 #### Tasks
 
-- [ ] Update `refresh.ts` to import `getWorktreeStats` instead of `isWorktreeDirty`
-- [ ] Update dirty check in `refresh.ts` to use `(await getWorktreeStats(root)).isDirty`
-- [ ] Remove `isWorktreeDirty` function from `src/lib/git.ts`
-- [ ] Run full test suite to confirm nothing is broken
+- [x] Update `refresh.ts` to import `getWorktreeStats` instead of `isWorktreeDirty`
+- [x] Update dirty check in `refresh.ts` to use `(await getWorktreeStats(root)).isDirty`
+- [x] Remove `isWorktreeDirty` function from `src/lib/git.ts`
+- [x] Run full test suite to confirm nothing is broken
 
 #### Testing
 
