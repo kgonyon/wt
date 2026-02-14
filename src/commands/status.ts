@@ -4,8 +4,8 @@ import { basename } from 'path';
 import { getGitRoot, isWtProject } from '../lib/paths';
 import { loadConfig } from '../lib/config';
 import { loadPortAllocations, getPortsForFeature } from '../lib/ports';
-import { listWorktrees, isWorktreeDirty } from '../lib/git';
-import type { WorktreeInfo } from '../lib/git';
+import { listWorktrees, getWorktreeStats } from '../lib/git';
+import type { WorktreeInfo, WorktreeStats } from '../lib/git';
 import type { PortAllocations, WtConfig } from '../types/config';
 
 export default defineCommand({
@@ -46,6 +46,19 @@ export function filterFeatureWorktrees(worktrees: WorktreeInfo[], treesDir: stri
   return worktrees.filter((wt) => wt.path.includes(`/${treesDir}/`));
 }
 
+/**
+ * Format worktree stats for display.
+ * Returns `"N changed  +X -Y"` when dirty, `"clean"` otherwise.
+ * @internal
+ */
+export function formatStats(stats: WorktreeStats): string {
+  if (!stats.isDirty) return 'clean';
+  if (stats.fileCount === 0 && stats.insertions === 0 && stats.deletions === 0) {
+    return 'clean';
+  }
+  return `${stats.fileCount} changed  +${stats.insertions} -${stats.deletions}`;
+}
+
 async function printFeatureStatus(
   wt: WorktreeInfo,
   allocations: PortAllocations,
@@ -56,7 +69,7 @@ async function printFeatureStatus(
   const ports = allocation
     ? getPortsForFeature(config.port, allocation.index)
     : [];
-  const dirty = await isWorktreeDirty(wt.path);
+  const stats = await getWorktreeStats(wt.path);
 
   const branchName = wt.branch.replace('refs/heads/', '');
   const portStr = ports.length > 0 ? ports.join(', ') : 'unallocated';
@@ -64,6 +77,6 @@ async function printFeatureStatus(
   console.log(`  ${feature}`);
   console.log(`    Branch: ${branchName}`);
   console.log(`    Ports:  ${portStr}`);
-  console.log(`    Status: ${dirty ? 'dirty' : 'clean'}`);
+  console.log(`    Status: ${formatStats(stats)}`);
   console.log('');
 }
