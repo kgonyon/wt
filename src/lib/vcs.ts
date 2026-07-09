@@ -14,6 +14,7 @@ import {
   deleteJjBookmark,
   fetchJjParent,
   getJjWorkspaceStats,
+  initColocatedJj,
   jjBookmarkExists,
   listJjWorkspaces,
   refreshJjParent,
@@ -63,6 +64,10 @@ interface GitVcsDriverDependencies {
   removeWorktree: typeof removeWorktree;
   listWorktrees: typeof listWorktrees;
   getWorktreeStats: typeof getWorktreeStats;
+}
+
+interface GitJjVcsDriverDependencies extends GitVcsDriverDependencies {
+  initColocatedJj: typeof initColocatedJj;
 }
 
 interface JjVcsDriverDependencies {
@@ -115,6 +120,52 @@ export function createGitVcsDriver(deps: GitVcsDriverDependencies): VcsDriver {
       return deps.getWorktreeStats(path, options);
     },
   };
+}
+
+/** @internal */
+export function createGitJjVcsDriver(deps: GitJjVcsDriverDependencies): VcsDriver {
+  const gitDriver = createGitVcsDriver(deps);
+
+  return {
+    ...gitDriver,
+    async createFeature(options) {
+      const branch = `${options.branchPrefix}${options.feature}`;
+      const hadBranch = await deps.branchExists(options.root, branch);
+
+      await deps.addWorktree(
+        options.root,
+        options.path,
+        options.branchPrefix,
+        options.feature,
+        options.parentRef,
+      );
+
+      try {
+        await deps.initColocatedJj(options.path);
+      } catch (error) {
+        await rollbackFailedGitJjCreate(deps, {
+          root: options.root,
+          path: options.path,
+          branch,
+          shouldDeleteBranch: !hadBranch,
+        });
+        throw error;
+      }
+    },
+  };
+}
+
+async function rollbackFailedGitJjCreate(
+  deps: GitJjVcsDriverDependencies,
+  options: { root: string; path: string; branch: string; shouldDeleteBranch: boolean },
+): Promise<void> {
+  try {
+    await deps.removeWorktree(options.root, options.path);
+  } finally {
+    if (options.shouldDeleteBranch) {
+      await deps.deleteBranch(options.root, options.branch);
+    }
+  }
 }
 
 /** @internal */
@@ -172,6 +223,21 @@ export const gitVcsDriver: VcsDriver = createGitVcsDriver({
   getWorktreeStats,
 });
 
+export const gitJjVcsDriver: VcsDriver = createGitJjVcsDriver({
+  getGitRoot,
+  getProjectRoot,
+  getDefaultBranch,
+  refreshFromOrigin,
+  fetchFromOrigin,
+  addWorktree,
+  branchExists,
+  deleteBranch,
+  removeWorktree,
+  listWorktrees,
+  getWorktreeStats,
+  initColocatedJj,
+});
+
 export const jjVcsDriver: VcsDriver = createJjVcsDriver({
   getGitRoot,
   getProjectRoot,
@@ -186,5 +252,7 @@ export const jjVcsDriver: VcsDriver = createJjVcsDriver({
 });
 
 export function getVcsDriver(vcs: RailConfig['vcs']): VcsDriver {
-  return vcs === 'jj' ? jjVcsDriver : gitVcsDriver;
+  if (vcs === 'jj') return jjVcsDriver;
+  if (vcs === 'git-jj') return gitJjVcsDriver;
+  return gitVcsDriver;
 }

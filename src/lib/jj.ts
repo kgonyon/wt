@@ -1,5 +1,6 @@
 import consola from 'consola';
-import { basename } from 'path';
+import { existsSync } from 'fs';
+import { basename, join } from 'path';
 import { isSafeParentRefName, validateFeatureName } from './config';
 import { getFeatureDirName, getFeatureNameFromDirName } from './paths';
 import { jjExec } from './shell';
@@ -61,6 +62,10 @@ export async function listJjWorkspaces(root: string): Promise<WorktreeInfo[]> {
 
 export async function getJjWorkspaceStats(path: string, parentRef = 'main@origin'): Promise<WorktreeStats> {
   return createJjOperations().getJjWorkspaceStats(path, parentRef);
+}
+
+export async function initColocatedJj(path: string): Promise<void> {
+  return createJjOperations().initColocatedJj(path);
 }
 
 /** @internal */
@@ -171,6 +176,12 @@ export function createJjOperations(deps: JjOperationsDependencies = { jjExec }) 
       } catch {
         return { ...CLEAN_STATS, localState: 'unknown', openPrs: { state: 'unavailable' } };
       }
+    },
+
+    async initColocatedJj(path: string): Promise<void> {
+      if (existsSync(join(path, '.jj'))) return;
+
+      await deps.jjExec(path, 'git init --git-repo . .');
     },
   };
 

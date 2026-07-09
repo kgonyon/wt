@@ -81,6 +81,14 @@ describe('buildConfigContent', () => {
     expect(config.auto_refresh).toBe(true);
   });
 
+  it('generates a valid Git-JJ config with Git parent defaults', () => {
+    const config = parse(buildConfigContent('test-project', defaultInitOptions({ vcs: 'git-jj' })));
+
+    expect(() => validateConfig(config)).not.toThrow();
+    expect(config.vcs).toBe('git-jj');
+    expect(config.default_parent).toBe('main');
+  });
+
   it('records flag-driven setup choices', () => {
     const config = parse(buildConfigContent('test-project', defaultInitOptions({
       forge: 'gitlab',
@@ -106,9 +114,9 @@ describe('buildConfigContent', () => {
 describe('resolveInitOptions', () => {
   it('resolves non-interactive CLI choices from flags', async () => {
     const options = await resolveInitOptions({
-      vcs: 'jj',
+      vcs: 'git-jj',
       forge: 'none',
-      defaultParent: 'main@origin',
+      defaultParent: 'origin/main',
       autoRefresh: false,
       trackRail: false,
       ignoreDestination: 'exclude',
@@ -116,9 +124,9 @@ describe('resolveInitOptions', () => {
     });
 
     expect(options).toEqual({
-      vcs: 'jj',
+      vcs: 'git-jj',
       forge: 'none',
-      defaultParent: 'main@origin',
+      defaultParent: 'origin/main',
       autoRefresh: false,
       trackRail: false,
       ignoreDestination: 'exclude',

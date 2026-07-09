@@ -134,6 +134,14 @@ describe('JJ operations', () => {
     ]);
   });
 
+  it('initializes colocated JJ inside an existing Git worktree', async () => {
+    await ops.initColocatedJj('/repo/.trees/demo');
+
+    expect(calls).toEqual([
+      { cwd: '/repo/.trees/demo', args: 'git init --git-repo . .' },
+    ]);
+  });
+
   it('forgets a workspace without deleting the bookmark or directory', async () => {
     await ops.removeJjWorkspace('/repo', '/repo/.trees/demo', 'demo');
 

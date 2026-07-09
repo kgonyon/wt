@@ -54,7 +54,7 @@ export default defineCommand({
   args: {
     vcs: {
       type: 'string',
-      description: 'VCS backend to configure: git or jj',
+      description: 'VCS backend to configure: git, jj, or git-jj',
     },
     forge: {
       type: 'string',
@@ -184,7 +184,7 @@ function repairConfig(
   } else {
     delete repaired.name;
   }
-  repaired.vcs = enumValue(existing.vcs, ['git', 'jj']) ?? options.vcs;
+  repaired.vcs = enumValue(existing.vcs, ['git', 'jj', 'git-jj']) ?? options.vcs;
   repaired.forge = enumValue(existing.forge, ['github', 'gitlab', 'none']) ?? options.forge;
   repaired.default_parent = safeParent(existing.default_parent) ? existing.default_parent : options.defaultParent;
   repaired.auto_refresh = typeof existing.auto_refresh === 'boolean' ? existing.auto_refresh : options.autoRefresh;
@@ -334,7 +334,7 @@ export async function resolveInitOptions(
   existing: Record<string, any> = {},
 ): Promise<InitOptions> {
   const existingOptions = initOptionValuesFromConfig(existing);
-  const vcs = existingOptions.vcs ?? await resolveEnumChoice<VcsChoice>('VCS', args.vcs, ['git', 'jj'], 'git');
+  const vcs = existingOptions.vcs ?? await resolveEnumChoice<VcsChoice>('VCS', args.vcs, ['git', 'jj', 'git-jj'], 'git');
   const forge = existingOptions.forge ?? await resolveEnumChoice<ForgeChoice>(
     'Forge integration',
     args.forge,
@@ -377,7 +377,7 @@ function initOptionValuesFromConfig(existing: Record<string, any>): Partial<Init
   const existingWorktrees = isPlainObject(existing.worktrees) ? existing.worktrees : {};
   const options: Partial<InitOptions> = {};
 
-  const vcs = enumValue(existing.vcs, ['git', 'jj']);
+  const vcs = enumValue(existing.vcs, ['git', 'jj', 'git-jj']);
   const forge = enumValue(existing.forge, ['github', 'gitlab', 'none']);
   const ignoreDestination = enumValue(existingSetup.ignore_destination, ['gitignore', 'exclude']);
 
