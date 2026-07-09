@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
-import { createGitVcsDriver, createJjVcsDriver } from './vcs';
+import { createGitJjVcsDriver, createGitVcsDriver, createJjVcsDriver } from './vcs';
 import type { WorktreeStatsOptions } from './git';
 
 const calls: Array<{ name: string; args: unknown[] }> = [];
@@ -142,6 +142,125 @@ describe('createGitVcsDriver', () => {
 
     expect(calls).toEqual([
       { name: 'getDefaultBranch', args: ['/repo'] },
+      { name: 'getWorktreeStats', args: ['/repo/.trees/demo', statusOptions] },
+    ]);
+  });
+});
+
+describe('createGitJjVcsDriver', () => {
+  it('creates Git worktrees and initializes colocated JJ in the feature tree', async () => {
+    const driver = createGitJjVcsDriver({
+      ...deps,
+      initColocatedJj: (path: string) => {
+        calls.push({ name: 'initColocatedJj', args: [path] });
+        return Promise.resolve();
+      },
+    });
+
+    await driver.createFeature({
+      root: '/repo',
+      path: '/repo/.trees/new',
+      branchPrefix: 'feature/',
+      feature: 'new',
+      parentRef: 'origin/main',
+    });
+
+    expect(calls).toEqual([
+      { name: 'branchExists', args: ['/repo', 'feature/new'] },
+      {
+        name: 'addWorktree',
+        args: ['/repo', '/repo/.trees/new', 'feature/', 'new', 'origin/main'],
+      },
+      { name: 'initColocatedJj', args: ['/repo/.trees/new'] },
+    ]);
+  });
+
+  it('rolls back the Git worktree and created branch when colocated JJ init fails', async () => {
+    const driver = createGitJjVcsDriver({
+      ...deps,
+      initColocatedJj: (path: string) => {
+        calls.push({ name: 'initColocatedJj', args: [path] });
+        return Promise.reject(new Error('jj init failed'));
+      },
+    });
+
+    await expect(driver.createFeature({
+      root: '/repo',
+      path: '/repo/.trees/new',
+      branchPrefix: 'feature/',
+      feature: 'new',
+      parentRef: 'origin/main',
+    })).rejects.toThrow('jj init failed');
+
+    expect(calls).toEqual([
+      { name: 'branchExists', args: ['/repo', 'feature/new'] },
+      {
+        name: 'addWorktree',
+        args: ['/repo', '/repo/.trees/new', 'feature/', 'new', 'origin/main'],
+      },
+      { name: 'initColocatedJj', args: ['/repo/.trees/new'] },
+      { name: 'removeWorktree', args: ['/repo', '/repo/.trees/new'] },
+      { name: 'deleteBranch', args: ['/repo', 'feature/new'] },
+    ]);
+  });
+
+  it('preserves pre-existing feature branches when colocated JJ init fails', async () => {
+    const driver = createGitJjVcsDriver({
+      ...deps,
+      initColocatedJj: (path: string) => {
+        calls.push({ name: 'initColocatedJj', args: [path] });
+        return Promise.reject(new Error('jj init failed'));
+      },
+    });
+
+    await expect(driver.createFeature({
+      root: '/repo',
+      path: '/repo/.trees/demo',
+      branchPrefix: 'feature/',
+      feature: 'demo',
+      parentRef: 'origin/main',
+    })).rejects.toThrow('jj init failed');
+
+    expect(calls).toEqual([
+      { name: 'branchExists', args: ['/repo', 'feature/demo'] },
+      {
+        name: 'addWorktree',
+        args: ['/repo', '/repo/.trees/demo', 'feature/', 'demo', 'origin/main'],
+      },
+      { name: 'initColocatedJj', args: ['/repo/.trees/demo'] },
+      { name: 'removeWorktree', args: ['/repo', '/repo/.trees/demo'] },
+    ]);
+  });
+
+  it('uses Git operations for removal, listing, status, and parent refresh', async () => {
+    const driver = createGitJjVcsDriver({
+      ...deps,
+      initColocatedJj: () => Promise.resolve(),
+    });
+    const statusOptions = {
+      defaultBranch: 'origin/main',
+      branch: 'refs/heads/feature/demo',
+    };
+
+    await driver.removeFeature('/repo', '/repo/.trees/demo', 'demo');
+    await driver.pruneFeature('/repo', 'feature/', 'demo');
+    await expect(driver.featureRefExists('/repo', 'feature/', 'demo')).resolves.toBe(true);
+    await expect(driver.listFeatures('/repo')).resolves.toEqual([
+      { path: '/repo/.trees/demo', head: 'abc', branch: 'refs/heads/feature/demo' },
+    ]);
+    await driver.refreshParent('/repo', 'main');
+    await expect(driver.fetchParent('/repo', 'origin/main')).resolves.toBe('origin/main');
+    await expect(driver.getLocalFeatureStatus('/repo/.trees/demo', statusOptions)).resolves.toMatchObject({
+      commitsAhead: 3,
+    });
+
+    expect(calls).toEqual([
+      { name: 'removeWorktree', args: ['/repo', '/repo/.trees/demo'] },
+      { name: 'deleteBranch', args: ['/repo', 'feature/demo'] },
+      { name: 'branchExists', args: ['/repo', 'feature/demo'] },
+      { name: 'listWorktrees', args: ['/repo'] },
+      { name: 'refreshFromOrigin', args: ['/repo', 'main'] },
+      { name: 'fetchFromOrigin', args: ['/repo', 'origin/main'] },
       { name: 'getWorktreeStats', args: ['/repo/.trees/demo', statusOptions] },
     ]);
   });

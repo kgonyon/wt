@@ -5,7 +5,7 @@ import { getConfigPath, getLocalConfigPath, getUserConfigPath, resolveWorktreesD
 import type { RailConfig } from '../types/config';
 
 const CONFIG_REPAIR_MESSAGE = 'Run `rail init` to repair the project config.';
-const VCS_VALUES = ['git', 'jj'];
+const VCS_VALUES = ['git', 'jj', 'git-jj'];
 const FORGE_VALUES = ['github', 'gitlab', 'none'];
 const IGNORE_DESTINATION_VALUES = ['gitignore', 'exclude'];
 const FEATURE_NAME_PATTERN = /^[A-Za-z0-9._\-/]+$/;

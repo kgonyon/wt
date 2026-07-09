@@ -110,6 +110,10 @@ describe('validateConfig', () => {
     expect(() => validateConfig(validConfig())).not.toThrow();
   });
 
+  it('accepts the Git worktree plus colocated JJ backend', () => {
+    expect(() => validateConfig(validConfig({ vcs: 'git-jj' }))).not.toThrow();
+  });
+
   it('accepts configs without a branch prefix', () => {
     const config = validConfig({ worktrees: { branch_prefix: undefined } });
     delete config.worktrees.branch_prefix;
@@ -131,7 +135,7 @@ describe('validateConfig', () => {
   it('rejects invalid vcs and forge enum values', () => {
     const config = validConfig({ vcs: 'svn', forge: 'bitbucket' });
 
-    expect(() => validateConfig(config)).toThrow(/vcs must be one of: git, jj/);
+    expect(() => validateConfig(config)).toThrow(/vcs must be one of: git, jj, git-jj/);
     expect(() => validateConfig(config)).toThrow(/forge must be one of: github, gitlab, none/);
   });
 

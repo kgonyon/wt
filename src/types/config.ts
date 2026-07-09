@@ -37,7 +37,7 @@ export interface SetupConfig {
 
 export interface RailConfig {
   name: string;
-  vcs: 'git' | 'jj';
+  vcs: 'git' | 'jj' | 'git-jj';
   forge: 'github' | 'gitlab' | 'none';
   default_parent: string;
   auto_refresh: boolean;
